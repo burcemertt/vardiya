@@ -196,3 +196,13 @@ with tab2:
             
             csv = df_result.to_csv(index=False).encode('utf-8-sig')
             st.download_button(label="📥 Vardiya Tablosunu İndir", data=csv, file_name="haftalik_shift.csv", mime="text/csv")
+            import streamlit as str
+
+hide_menu_style = """
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        </style>
+        """
+str.markdown(hide_menu_style, unsafe_allow_html=True)
