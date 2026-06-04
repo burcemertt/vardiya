@@ -68,5 +68,11 @@ if "talep" not in st.session_state:
 st.sidebar.header("📝 Personel Tercihleri")
 for p in staff_list:
     with st.sidebar.expander(f"{p['isim']} ({p['kurulum']} Kurulum)"):
+        # F-string içindeki süslü parantezler düzeltildi
         v1 = st.selectbox("1. Vardiya", p['v_opts'], key=f"{p['isim']}_v1")
-        v2 = st.selectbox("2. Vardiya", p['v_opts'], key=f"{p['isim']
+        v2 = st.selectbox("2. Vardiya", p['v_opts'], key=f"{p['isim']}_v2")
+        
+        st.session_state.talep[p['isim']]['izinler'] = st.multiselect(
+            "İzin Tercihleri", DAYS, key=f"{p['isim']}_izin"
+        )
+        st.session_state.talep[p['isim']]['secim'] = (v1, v2)
