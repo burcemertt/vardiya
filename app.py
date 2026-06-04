@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import random
-
+import io
 # Sayfa Genişlik Ayarı
 st.set_page_config(layout="wide", page_title="Akıllı Canlı Destek Vardiya Robotu")
 
@@ -193,19 +193,14 @@ with tab2:
             df_result = pd.DataFrame(output_data)
             st.success("🎉 Vardiya tablosu başarıyla oluşturuldu!")
             st.dataframe(df_result, use_container_width=True)
+            import io
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                df_result.to_excel(writer, index=False, sheet_name='Vardiya Çizelgesi')
             
-            csv = df_result.to_csv(index=False).encode('utf-8-sig')
-            st.download_button(label="📥 Vardiya Tablosunu İndir", data=csv, file_name="haftalik_shift.csv", mime="text/csv")
-            import streamlit as str
-
-hide_menu_style = """
-        <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-        .viewerBadge_container__1QS1h {display: none !important;} /* Streamlit logosunu uçurur */
-        button[title="View source code"] {display: none !important;} /* GitHub kod butonunu gizler */
-        </style>
-        """
-st.markdown(hide_menu_style, unsafe_allow_html=True)
-xlsxwriter
+            st.download_button(
+                label="📥 Vardiya Tablosunu Excel Olarak İndir",
+                data=buffer.getvalue(),
+                file_name="haftalik_shift.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
