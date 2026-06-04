@@ -2,68 +2,71 @@ import streamlit as st
 import pandas as pd
 import json
 
-st.set_page_config(layout="wide", page_title="Vardiya Robotu")
-st.title("🛡️ Akıllı Vardiya ve İzin Dengeleyici")
+st.set_page_config(layout="wide", page_title="Vardiya Planlayıcı")
+st.title("🛡️ Personel Vardiya ve İzin Planlayıcı")
 
-# Supervisor'lar hariç liste (Kurulum sayıları ve vardiya grupları ile)
+# Vardiya Grupları ve Saatleri
+VARDİYA_SAATLERİ = {
+    "Sabah": "08:30-17:30",
+    "Öğle": "12:00-21:00",
+    "Akşam": "17:30-02:30",
+    "Gece-1": "19:00-04:00",
+    "Gece-2": "21:00-06:00",
+    "Sabah-Erken": "00:00-08:30"
+}
+
+# Personel Listesi (Eksiksiz)
 staff_list = [
-    {"isim": "ENES", "rol": "Kıdemli", "kurulum": 4, "v_options": ["08:30-17:30"]},
-    {"isim": "POLAT", "rol": "Kıdemli", "kurulum": 4, "v_options": ["08:30-17:30"]},
-    {"isim": "İLKER", "rol": "Kıdemli", "kurulum": 4, "v_options": ["08:30-17:30"]},
-    {"isim": "METİN", "rol": "Temsilci", "kurulum": 2, "v_options": ["08:30-17:30"]},
-    {"isim": "EMRE", "rol": "Temsilci", "kurulum": 2, "v_options": ["08:30-17:30"]},
-    {"isim": "SENA", "rol": "Temsilci", "kurulum": 1, "v_options": ["08:30-17:30"]},
-    {"isim": "SEYFİ", "rol": "Eğitim", "kurulum": 1, "v_options": ["08:30-17:30"]},
-    {"isim": "KORAY", "rol": "Kıdemli", "kurulum": 4, "v_options": ["12:00-21:00"]},
-    {"isim": "MUSTAFA", "rol": "Kıdemli", "kurulum": 4, "v_options": ["17:30-02:30"]},
-    {"isim": "YALIN", "rol": "Kıdemli", "kurulum": 2, "v_options": ["17:30-02:30"]},
-    {"isim": "UĞUR", "rol": "Kıdemli", "kurulum": 1, "v_options": ["21:00-06:00"]},
-    {"isim": "CÜNEYT", "rol": "Kıdemli", "kurulum": 1, "v_options": ["21:00-06:00"]},
-    {"isim": "MÜGE", "rol": "Temsilci", "kurulum": 1, "v_options": ["00:00-08:30"]}
+    {"isim": "POLAT", "rol": "Kıdemli", "kurulum": 4, "v_opts": ["Sabah", "Öğle"]},
+    {"isim": "İLKER", "rol": "Kıdemli", "kurulum": 4, "v_opts": ["Sabah", "Akşam"]},
+    {"isim": "KORAY", "rol": "Kıdemli", "kurulum": 4, "v_opts": ["Öğle", "Gece-1"]},
+    {"isim": "MUSTAFA", "rol": "Kıdemli", "kurulum": 4, "v_opts": ["Akşam", "Gece-2"]},
+    {"isim": "YALIN", "rol": "Kıdemli", "kurulum": 4, "v_opts": ["Akşam", "Sabah-Erken"]},
+    {"isim": "UĞUR", "rol": "Kıdemli", "kurulum": 4, "v_opts": ["Gece-2", "Sabah"]},
+    {"isim": "CÜNEYT", "rol": "Kıdemli", "kurulum": 4, "v_opts": ["Gece-2", "Öğle"]},
+    {"isim": "METİN", "rol": "Temsilci", "kurulum": 4, "v_opts": ["Sabah", "Gece-1"]},
+    {"isim": "EMRE", "rol": "Temsilci", "kurulum": 2, "v_opts": ["Sabah", "Öğle"]},
+    {"isim": "SENA", "rol": "Temsilci", "kurulum": 1, "v_opts": ["Sabah", "Akşam"]},
+    {"isim": "ILGAZ", "rol": "Temsilci", "kurulum": 4, "v_opts": ["Akşam", "Gece-2"]},
+    {"isim": "OSMAN", "rol": "Temsilci", "kurulum": 3, "v_opts": ["Akşam", "Sabah-Erken"]},
+    {"isim": "YASİN", "rol": "Temsilci", "kurulum": 3, "v_opts": ["Akşam", "Gece-1"]},
+    {"isim": "CANER", "rol": "Temsilci", "kurulum": 2, "v_opts": ["Akşam", "Sabah"]},
+    {"isim": "BURÇAK", "rol": "Temsilci", "kurulum": 2, "v_opts": ["Akşam", "Öğle"]},
+    {"isim": "İBRAHİM", "rol": "Temsilci", "kurulum": 2, "v_opts": ["Gece-1", "Sabah-Erken"]},
+    {"isim": "MÜGE", "rol": "Temsilci", "kurulum": 4, "v_opts": ["Sabah-Erken", "Gece-1"]},
+    {"isim": "YALÇIN", "rol": "Temsilci", "kurulum": 4, "v_opts": ["Sabah-Erken", "Gece-2"]},
+    {"isim": "MEHMET", "rol": "Temsilci", "kurulum": 4, "v_opts": ["Sabah-Erken", "Öğle"]},
+    {"isim": "ARİF", "rol": "Temsilci", "kurulum": 1, "v_opts": ["Sabah-Erken", "Sabah"]},
+    {"isim": "ENİS", "rol": "Temsilci", "kurulum": 1, "v_opts": ["Sabah-Erken", "Akşam"]},
+    {"isim": "BARIŞ", "rol": "Temsilci", "kurulum": 1, "v_opts": ["Sabah-Erken", "Gece-1"]},
+    {"isim": "TOYGAR", "rol": "Temsilci", "kurulum": 1, "v_opts": ["Gece-1", "Sabah"]},
+    {"isim": "SELİN", "rol": "Temsilci", "kurulum": 1, "v_opts": ["Gece-1", "Öğle"]},
+    {"isim": "HAKAN", "rol": "Temsilci", "kurulum": 1, "v_opts": ["Gece-1", "Akşam"]},
+    {"isim": "EYLEM", "rol": "Temsilci", "kurulum": 1, "v_opts": ["Gece-1", "Gece-2"]},
+    {"isim": "SEYFİ", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Sabah", "Öğle"]},
+    {"isim": "DEMET", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Sabah", "Akşam"]},
+    {"isim": "SEYİT", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Sabah", "Gece-1"]},
+    {"isim": "BERK", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Sabah", "Gece-2"]},
+    {"isim": "TAHİR", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Sabah", "Sabah-Erken"]},
+    {"isim": "RECEP", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Sabah", "Öğle"]},
+    {"isim": "TANJU", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Öğle", "Akşam"]},
+    {"isim": "OLCAY", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Akşam", "Gece-1"]},
+    {"isim": "ÖZCAN", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Akşam", "Gece-2"]},
+    {"isim": "EDİZ", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Akşam", "Sabah-Erken"]},
+    {"isim": "KEVSER", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Akşam", "Sabah"]},
+    {"isim": "HARUN", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Akşam", "Öğle"]},
+    {"isim": "KAZIM", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Akşam", "Gece-1"]},
+    {"isim": "KUBİLAY", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Sabah-Erken", "Sabah"]},
+    {"isim": "KİRAZ", "rol": "Eğitim", "kurulum": 1, "v_opts": ["Sabah-Erken", "Öğle"]}
 ]
 
 DAYS = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
 
-# Session State
 if "talep" not in st.session_state:
-    st.session_state.talep = {p['isim']: {"izinler": []} for p in staff_list}
+    st.session_state.talep = {p['isim']: {"izinler": [], "secim": p['v_opts']} for p in staff_list}
 
-st.sidebar.header("📝 Personel İzin Talepleri")
+st.sidebar.header("📝 Personel Tercihleri")
 for p in staff_list:
-    st.session_state.talep[p['isim']]['izinler'] = st.sidebar.multiselect(
-        f"{p['isim']} ({p['rol']} | {p['kurulum']} Kurulum)", DAYS, key=p['isim']
-    )
-
-if st.button("🚀 Vardiyayı Dengele ve Raporla"):
-    günlük_4_site_izin = {day: 0 for day in DAYS}
-    rows = []
-    
-    # Hiyerarşi: Kıdemli > Temsilci > Eğitim
-    role_prio = {"Kıdemli": 0, "Temsilci": 1, "Eğitim": 2}
-    sorted_staff = sorted(staff_list, key=lambda x: role_prio[x['rol']])
-
-    for p in sorted_staff:
-        tercihler = st.session_state.talep[p['isim']]['izinler']
-        is_4_site = p['kurulum'] == 4
-        
-        # İzin günü (4 kurulumlular için çakışma önleyici)
-        secilen_izin = None
-        for day in tercihler:
-            if is_4_site and günlük_4_site_izin[day] > 0:
-                continue
-            secilen_izin = day
-            break
-        if is_4_site and secilen_izin: günlük_4_site_izin[secilen_izin] += 1
-        
-        # Tablo satırı oluştur
-        p_row = {"Personel": p['isim'], "Rol": p['rol'], "Kurulum": p['kurulum']}
-        for day in DAYS:
-            p_row[day] = "OFF" if day == secilen_izin else p['v_options'][0]
-        rows.append(p_row)
-
-    df = pd.DataFrame(rows)
-    st.table(df)
-    
-    st.subheader("📋 Google Sheets AppScript Kodu")
-    script = f"function olusturVardiya() {{\n  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();\n  var data = {json.dumps([df.columns.tolist()] + df.values.tolist())};\n  sheet.getRange(1, 1, data.length, data[0].length).setValues(data);\n}}"
-    st.code(script, language="javascript")
+    with st.sidebar.expander(f"{p['isim']} ({p['kurulum']} Kurulum)"):
+        v1 = st.selectbox("1. Vardiya", p['v_opts'], key=f"{p['isim']}_v1")
+        v2 = st.selectbox("2. Vardiya", p['v_opts'], key=f"{p['isim']
