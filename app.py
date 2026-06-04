@@ -3,7 +3,7 @@ import pandas as pd
 import json
 
 st.set_page_config(layout="wide", page_title="Vardiya Planlayıcı")
-st.title("🛡️ Esnek Vardiya ve İzin Planlayıcı")
+st.title("🛡️ İki Vardiyalı ve Sınırsız İzinli Planlayıcı")
 
 staff_list = [
     {"isim": "POLAT", "rol": "Kıdemli"}, {"isim": "İLKER", "rol": "Kıdemli"},
@@ -32,24 +32,27 @@ SHIFTS = ["Sabah (08:30)", "12:00 Ara", "17:30 Ara", "19:00 Ara", "21:00 Ara", "
 DAYS = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
 
 if "talep" not in st.session_state:
-    st.session_state.talep = {p['isim']: {"v1": SHIFTS[0], "izinler": []} for p in staff_list}
+    st.session_state.talep = {p['isim']: {"v1": SHIFTS[0], "v2": SHIFTS[1], "izinler": []} for p in staff_list}
 
 st.sidebar.header("📝 Personel Tercihleri")
 for p in staff_list:
     with st.sidebar.expander(f"{p['isim']}"):
-        st.session_state.talep[p['isim']]['v1'] = st.selectbox("Vardiya", SHIFTS, key=f"{p['isim']}_v1")
-        # İzinlerde sınır yok, tüm günler seçilebilir
-        st.session_state.talep[p['isim']]['izinler'] = st.multiselect("İzin Günü Tercihleri", DAYS, key=f"{p['isim']}_izin")
+        st.session_state.talep[p['isim']]['v1'] = st.selectbox("1. Vardiya", SHIFTS, key=f"{p['isim']}_v1")
+        st.session_state.talep[p['isim']]['v2'] = st.selectbox("2. Vardiya", SHIFTS, key=f"{p['isim']}_v2")
+        st.session_state.talep[p['isim']]['izinler'] = st.multiselect("İzin Günleri", DAYS, key=f"{p['isim']}_izin")
 
-if st.button("🚀 Vardiyayı Raporla"):
+if st.button("🚀 Vardiyayı Listele"):
     rows = []
     for p in staff_list:
         p_row = {"Personel": p['isim']}
         tercihler = st.session_state.talep[p['isim']]['izinler']
         
-        # Eğer kişi izin tercih etmediyse veya seçilen gün değilse vardiyayı bas
         for day in DAYS:
-            p_row[day] = "OFF" if day in tercihler else st.session_state.talep[p['isim']]['v1']
+            if day in tercihler:
+                p_row[day] = "OFF"
+            else:
+                # İzinli değilse önce 1. tercihi, yoksa 2. tercihi yaz
+                p_row[day] = f"{st.session_state.talep[p['isim']]['v1']} / {st.session_state.talep[p['isim']]['v2']}"
         rows.append(p_row)
 
     df = pd.DataFrame(rows)
