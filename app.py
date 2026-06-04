@@ -3,7 +3,7 @@ import pandas as pd
 import json
 
 st.set_page_config(layout="wide", page_title="Vardiya Planlayıcı")
-st.title("🛡️ İki Vardiyalı ve Sınırsız İzinli Planlayıcı")
+st.title("🛡️ Saat Bazlı Vardiya ve İzin Planlayıcı")
 
 staff_list = [
     {"isim": "POLAT", "rol": "Kıdemli"}, {"isim": "İLKER", "rol": "Kıdemli"},
@@ -28,7 +28,8 @@ staff_list = [
     {"isim": "KUBİLAY", "rol": "Eğitim"}, {"isim": "KİRAZ", "rol": "Eğitim"}
 ]
 
-SHIFTS = ["Sabah (08:30)", "12:00 Ara", "17:30 Ara", "19:00 Ara", "21:00 Ara", "Gece (00:00)"]
+# Vardiya saatleri güncellendi
+SHIFTS = ["08:30-17:30", "12:00-21:00", "17:30-02:30", "19:00-04:00", "21:00-06:00", "00:00-09:00"]
 DAYS = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
 
 if "talep" not in st.session_state:
@@ -41,7 +42,7 @@ for p in staff_list:
         st.session_state.talep[p['isim']]['v2'] = st.selectbox("2. Vardiya", SHIFTS, key=f"{p['isim']}_v2")
         st.session_state.talep[p['isim']]['izinler'] = st.multiselect("İzin Günleri", DAYS, key=f"{p['isim']}_izin")
 
-if st.button("🚀 Vardiyayı Listele"):
+if st.button("🚀 Vardiyayı Saatli Listele"):
     rows = []
     for p in staff_list:
         p_row = {"Personel": p['isim']}
@@ -51,7 +52,6 @@ if st.button("🚀 Vardiyayı Listele"):
             if day in tercihler:
                 p_row[day] = "OFF"
             else:
-                # İzinli değilse önce 1. tercihi, yoksa 2. tercihi yaz
                 p_row[day] = f"{st.session_state.talep[p['isim']]['v1']} / {st.session_state.talep[p['isim']]['v2']}"
         rows.append(p_row)
 
