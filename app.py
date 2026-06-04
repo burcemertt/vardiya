@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import random
 import json
 
 st.set_page_config(layout="wide", page_title="Vardiya Planlayıcı")
@@ -32,39 +31,20 @@ staff_list = [
 SHIFTS = ["Sabah (08:30)", "12:00 Ara", "17:30 Ara", "19:00 Ara", "21:00 Ara", "Gece (00:00)"]
 DAYS = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
 
-# Session state'i başlat
 if "talep" not in st.session_state:
-    st.session_state.talep = {p['isim']: {"v1": "Talep Yok", "v2": "Talep Yok"} for p in staff_list}
+    st.session_state.talep = {p['isim']: {"v1": "Talep Yok", "v2": "Talep Yok", "izin": []} for p in staff_list}
 
-st.sidebar.header("🎯 Kilit Personel")
-selected_kilit = st.sidebar.multiselect("Vardiya liderleri:", options=[p['isim'] for p in staff_list], default=[p['isim'] for p in staff_list if p['rol'] == "Kıdemli"])
-
-st.sidebar.header("📝 Personel Talepleri")
+st.sidebar.header("📝 Personel Tercihleri")
 for p in staff_list:
-    with st.sidebar.expander(f"{p['isim']} ({p['rol']})"):
-        st.session_state.talep[p['isim']]['v1'] = st.selectbox(f"{p['isim']} 1. Tercih", ["Talep Yok"] + SHIFTS, key=f"{p['isim']}_v1")
-        st.session_state.talep[p['isim']]['v2'] = st.selectbox(f"{p['isim']} 2. Tercih", ["Talep Yok"] + SHIFTS, key=f"{p['isim']}_v2")
+    with st.sidebar.expander(f"{p['isim']}"):
+        st.session_state.talep[p['isim']]['v1'] = st.selectbox("1. Tercih", ["Talep Yok"] + SHIFTS, key=f"{p['isim']}_v1")
+        st.session_state.talep[p['isim']]['v2'] = st.selectbox("2. Tercih", ["Talep Yok"] + SHIFTS, key=f"{p['isim']}_v2")
+        st.session_state.talep[p['isim']]['izin'] = st.multiselect("İzin Günü Tercihi", DAYS, key=f"{p['isim']}_izin")
 
 if st.button("🚀 Vardiyayı Matris Olarak Oluştur"):
     data = {day: {shift: [] for shift in SHIFTS} for day in DAYS}
     
-    # Basit atama mantığı
     for day in DAYS:
         for shift in SHIFTS:
-            # Önce tercih edenleri ata
             for p in staff_list:
-                if st.session_state.talep[p['isim']]['v1'] == shift:
-                    data[day][shift].append(p['isim'])
-            
-            # Boşlukları doldur
-            if len(data[day][shift]) < 2:
-                data[day][shift].append("Boş")
-            
-            data[day][shift] = " / ".join(data[day][shift])
-
-    df = pd.DataFrame(data)
-    st.table(df)
-    
-    st.subheader("📋 Google Sheets AppScript Kodu")
-    script = f"function olusturVardiya() {{\n  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();\n  var data = {json.dumps(df.reset_index().values.tolist())};\n  sheet.getRange(1, 1, data.length, data[0].length).setValues(data);\n}}"
-    st.code(script, language="javascript")
+                # İzin günü değilse ve
