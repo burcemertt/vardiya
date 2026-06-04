@@ -1,12 +1,10 @@
 import streamlit as st
 import pandas as pd
 import random
-import io
 
 st.set_page_config(layout="wide", page_title="Vardiya Planlayıcı")
-st.title("🛡️ Akıllı Vardiya Planlama Robotu")
+st.title("🛡️ Google Sheets Uyumlu Vardiya Robotu")
 
-# Personel Listesi
 staff_list = [
     {"isim": "POLAT", "rol": "Kıdemli"}, {"isim": "İLKER", "rol": "Kıdemli"},
     {"isim": "KORAY", "rol": "Kıdemli"}, {"isim": "MUSTAFA", "rol": "Kıdemli"},
@@ -33,49 +31,26 @@ staff_list = [
 SHIFTS = ["Sabah", "12:00 Ara", "17:30 Ara", "19:00 Ara", "21:00 Ara", "Gece"]
 DAYS = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
 
-# Kenar Çubuğu Ayarları
-st.sidebar.header("🎯 Kilit Personel Seçimi")
-selected_kilit = st.sidebar.multiselect(
-    "Bu hafta vardiyayı yönetecek kilit isimleri seçin:",
-    options=[p['isim'] for p in staff_list],
-    default=[p['isim'] for p in staff_list if p['rol'] == "Kıdemli"]
-)
+st.sidebar.header("🎯 Kilit Personel")
+selected_kilit = st.sidebar.multiselect("Vardiya liderleri:", options=[p['isim'] for p in staff_list], default=[p['isim'] for p in staff_list if p['rol'] == "Kıdemli"])
 
-if st.button("🚀 Vardiyayı Oluştur"):
-    kilit_personel = [p for p in staff_list if p['isim'] in selected_kilit]
-    digerleri = [p for p in staff_list if p['isim'] not in selected_kilit]
+if st.button("🚀 Vardiyayı Matris Olarak Oluştur"):
+    kilit = [p for p in staff_list if p['isim'] in selected_kilit]
+    diger = [p for p in staff_list if p['isim'] not in selected_kilit]
     
-    schedule = {day: {shift: [] for shift in SHIFTS} for day in DAYS}
+    # Matris hazırlığı
+    data = {day: {shift: "" for shift in SHIFTS} for day in DAYS}
     
-    # Kilitleri dağıt
     for day in DAYS:
-        random.shuffle(kilit_personel)
+        random.shuffle(kilit)
         for i, shift in enumerate(SHIFTS):
-            if i < len(kilit_personel):
-                schedule[day][shift].append(kilit_personel[i]['isim'] + " (Kilit)")
+            p1 = kilit[i % len(kilit)]['isim']
+            p2 = diger[i % len(diger)]['isim']
+            data[day][shift] = f"{p1} / {p2}"
+            
+    df = pd.DataFrame(data)
+    st.table(df) # Ekrana matris tabloyu bas
     
-    # Diğerlerini dağıt
-    for day in DAYS:
-        for shift in SHIFTS:
-            while len(schedule[day][shift]) < 2:
-                if digerleri:
-                    p = digerleri.pop(0)
-                    schedule[day][shift].append(p['isim'] + " (" + p['rol'] + ")")
-                    digerleri.append(p)
-
-    # DataFrame'e dök
-    rows = []
-    for day in DAYS:
-        for shift in SHIFTS:
-            for p in schedule[day][shift]:
-                rows.append({"Gün": day, "Vardiya": shift, "Personel": p})
-    
-    df = pd.DataFrame(rows)
-    st.dataframe(df, use_container_width=True)
-    
-    # Excel oluşturma
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False)
-    
-    st.download_button("📥 Excel İndir", buffer.getvalue(), "haftalik_vardiya.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    st.subheader("📋 Google Sheets AppScript Kodu")
+    script = f"function olusturVardiya() {{\n  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();\n  var data = {json.dumps(df.reset_index().values.tolist())};\n  sheet.getRange(1, 1, data.length, data[0].length).setValues(data);\n}}"
+    st.code(script, language="javascript")
