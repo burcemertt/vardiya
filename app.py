@@ -47,4 +47,20 @@ if st.button("🚀 Vardiyayı Matris Olarak Oluştur"):
     for day in DAYS:
         for shift in SHIFTS:
             for p in staff_list:
-                # İzin günü değilse ve
+                # İzin günü değilse ve vardiyayı tercih ettiyse ata
+                if day not in st.session_state.talep[p['isim']]['izin']:
+                    if st.session_state.talep[p['isim']]['v1'] == shift or st.session_state.talep[p['isim']]['v2'] == shift:
+                        data[day][shift].append(p['isim'])
+            
+            # Boşsa belirt
+            if not data[day][shift]: 
+                data[day][shift] = ["Boş"]
+            
+            data[day][shift] = " / ".join(data[day][shift])
+
+    df = pd.DataFrame(data)
+    st.table(df)
+    
+    st.subheader("📋 Google Sheets AppScript Kodu")
+    script = f"function olusturVardiya() {{\n  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();\n  var data = {json.dumps(df.reset_index().values.tolist())};\n  sheet.getRange(1, 1, data.length, data[0].length).setValues(data);\n}}"
+    st.code(script, language="javascript")
