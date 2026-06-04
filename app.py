@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
 import random
+import json
 
 st.set_page_config(layout="wide", page_title="Vardiya Planlayıcı")
-st.title("🛡️ Google Sheets Uyumlu Vardiya Robotu")
+st.title("🛡️ Profesyonel Vardiya Planlayıcı")
 
 staff_list = [
     {"isim": "POLAT", "rol": "Kıdemli"}, {"isim": "İLKER", "rol": "Kıdemli"},
@@ -28,28 +29,41 @@ staff_list = [
     {"isim": "KUBİLAY", "rol": "Eğitim"}, {"isim": "KİRAZ", "rol": "Eğitim"}
 ]
 
-SHIFTS = ["Sabah", "12:00 Ara", "17:30 Ara", "19:00 Ara", "21:00 Ara", "Gece"]
+SHIFTS = ["Sabah (08:30)", "12:00 Ara", "17:30 Ara", "19:00 Ara", "21:00 Ara", "Gece (00:00)"]
 DAYS = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
+
+# Session state'i başlat
+if "talep" not in st.session_state:
+    st.session_state.talep = {p['isim']: {"v1": "Talep Yok", "v2": "Talep Yok"} for p in staff_list}
 
 st.sidebar.header("🎯 Kilit Personel")
 selected_kilit = st.sidebar.multiselect("Vardiya liderleri:", options=[p['isim'] for p in staff_list], default=[p['isim'] for p in staff_list if p['rol'] == "Kıdemli"])
 
+st.sidebar.header("📝 Personel Talepleri")
+for p in staff_list:
+    with st.sidebar.expander(f"{p['isim']} ({p['rol']})"):
+        st.session_state.talep[p['isim']]['v1'] = st.selectbox(f"{p['isim']} 1. Tercih", ["Talep Yok"] + SHIFTS, key=f"{p['isim']}_v1")
+        st.session_state.talep[p['isim']]['v2'] = st.selectbox(f"{p['isim']} 2. Tercih", ["Talep Yok"] + SHIFTS, key=f"{p['isim']}_v2")
+
 if st.button("🚀 Vardiyayı Matris Olarak Oluştur"):
-    kilit = [p for p in staff_list if p['isim'] in selected_kilit]
-    diger = [p for p in staff_list if p['isim'] not in selected_kilit]
+    data = {day: {shift: [] for shift in SHIFTS} for day in DAYS}
     
-    # Matris hazırlığı
-    data = {day: {shift: "" for shift in SHIFTS} for day in DAYS}
-    
+    # Basit atama mantığı
     for day in DAYS:
-        random.shuffle(kilit)
-        for i, shift in enumerate(SHIFTS):
-            p1 = kilit[i % len(kilit)]['isim']
-            p2 = diger[i % len(diger)]['isim']
-            data[day][shift] = f"{p1} / {p2}"
+        for shift in SHIFTS:
+            # Önce tercih edenleri ata
+            for p in staff_list:
+                if st.session_state.talep[p['isim']]['v1'] == shift:
+                    data[day][shift].append(p['isim'])
             
+            # Boşlukları doldur
+            if len(data[day][shift]) < 2:
+                data[day][shift].append("Boş")
+            
+            data[day][shift] = " / ".join(data[day][shift])
+
     df = pd.DataFrame(data)
-    st.table(df) # Ekrana matris tabloyu bas
+    st.table(df)
     
     st.subheader("📋 Google Sheets AppScript Kodu")
     script = f"function olusturVardiya() {{\n  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();\n  var data = {json.dumps(df.reset_index().values.tolist())};\n  sheet.getRange(1, 1, data.length, data[0].length).setValues(data);\n}}"
