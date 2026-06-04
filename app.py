@@ -3,7 +3,7 @@ import pandas as pd
 import json
 
 st.set_page_config(layout="wide", page_title="Vardiya Planlayıcı")
-st.title("🛡️ Kişisel Vardiya ve İzin Planlayıcı")
+st.title("🛡️ Akıllı Vardiya ve İzin Dengeleyici")
 
 staff_list = [
     {"isim": "POLAT", "rol": "Kıdemli"}, {"isim": "İLKER", "rol": "Kıdemli"},
@@ -32,23 +32,30 @@ SHIFTS = ["Sabah (08:30)", "12:00 Ara", "17:30 Ara", "19:00 Ara", "21:00 Ara", "
 DAYS = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
 
 if "talep" not in st.session_state:
-    st.session_state.talep = {p['isim']: {"v1": "Sabah (08:30)", "izin": "Pazartesi"} for p in staff_list}
+    st.session_state.talep = {p['isim']: {"v1": "Sabah (08:30)", "izinler": []} for p in staff_list}
 
 st.sidebar.header("📝 Personel Tercihleri")
+izin_sayaci = {day: 0 for day in DAYS} # Denge için gün sayacı
+
 for p in staff_list:
     with st.sidebar.expander(f"{p['isim']}"):
-        st.session_state.talep[p['isim']]['v1'] = st.selectbox("Vardiya Tercihi", SHIFTS, key=f"{p['isim']}_v1")
-        st.session_state.talep[p['isim']]['izin'] = st.selectbox("İzin Günü (Sadece 1 Gün)", DAYS, key=f"{p['isim']}_izin")
+        st.session_state.talep[p['isim']]['v1'] = st.selectbox("Vardiya", SHIFTS, key=f"{p['isim']}_v1")
+        st.session_state.talep[p['isim']]['izinler'] = st.multiselect("3 İzin Tercihi", DAYS, max_selections=3, key=f"{p['isim']}_izin")
 
-if st.button("🚀 Kişisel Vardiya Raporu Oluştur"):
+if st.button("🚀 Vardiyayı Dengeleyerek Oluştur"):
     rows = []
     for p in staff_list:
         p_row = {"Personel": p['isim']}
+        tercihler = st.session_state.talep[p['isim']]['izinler']
+        
+        # En uygun günü seç: İzin tercihlerinden, o güne kadar en az kişi izinli olanı bul
+        secilen_izin = None
+        if tercihler:
+            secilen_izin = min(tercihler, key=lambda d: izin_sayaci[d])
+            izin_sayaci[secilen_izin] += 1
+        
         for day in DAYS:
-            if day == st.session_state.talep[p['isim']]['izin']:
-                p_row[day] = "OFF"
-            else:
-                p_row[day] = st.session_state.talep[p['isim']]['v1']
+            p_row[day] = "OFF" if day == secilen_izin else st.session_state.talep[p['isim']]['v1']
         rows.append(p_row)
 
     df = pd.DataFrame(rows)
