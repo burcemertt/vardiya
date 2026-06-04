@@ -3,7 +3,7 @@ import pandas as pd
 import json
 
 st.set_page_config(layout="wide", page_title="Vardiya Planlayıcı")
-st.title("🛡️ Profesyonel Vardiya Planlayıcı")
+st.title("🛡️ Kişisel Vardiya Raporu")
 
 staff_list = [
     {"isim": "POLAT", "rol": "Kıdemli"}, {"isim": "İLKER", "rol": "Kıdemli"},
@@ -39,28 +39,24 @@ for p in staff_list:
     with st.sidebar.expander(f"{p['isim']}"):
         st.session_state.talep[p['isim']]['v1'] = st.selectbox("1. Tercih", ["Talep Yok"] + SHIFTS, key=f"{p['isim']}_v1")
         st.session_state.talep[p['isim']]['v2'] = st.selectbox("2. Tercih", ["Talep Yok"] + SHIFTS, key=f"{p['isim']}_v2")
-        st.session_state.talep[p['isim']]['izin'] = st.multiselect("İzin Günü Tercihi", DAYS, key=f"{p['isim']}_izin")
+        st.session_state.talep[p['isim']]['izin'] = st.multiselect("İzin Günü", DAYS, key=f"{p['isim']}_izin")
 
-if st.button("🚀 Vardiyayı Matris Olarak Oluştur"):
-    data = {day: {shift: [] for shift in SHIFTS} for day in DAYS}
-    
-    for day in DAYS:
-        for shift in SHIFTS:
-            for p in staff_list:
-                # İzin günü değilse ve vardiyayı tercih ettiyse ata
-                if day not in st.session_state.talep[p['isim']]['izin']:
-                    if st.session_state.talep[p['isim']]['v1'] == shift or st.session_state.talep[p['isim']]['v2'] == shift:
-                        data[day][shift].append(p['isim'])
-            
-            # Boşsa belirt
-            if not data[day][shift]: 
-                data[day][shift] = ["Boş"]
-            
-            data[day][shift] = " / ".join(data[day][shift])
+if st.button("🚀 Kişisel Vardiya Raporu Oluştur"):
+    rows = []
+    for p in staff_list:
+        p_row = {"Personel": p['isim']}
+        for day in DAYS:
+            if day in st.session_state.talep[p['isim']]['izin']:
+                p_row[day] = "OFF"
+            elif st.session_state.talep[p['isim']]['v1'] != "Talep Yok":
+                p_row[day] = st.session_state.talep[p['isim']]['v1']
+            else:
+                p_row[day] = "Belirsiz"
+        rows.append(p_row)
 
-    df = pd.DataFrame(data)
+    df = pd.DataFrame(rows)
     st.table(df)
     
     st.subheader("📋 Google Sheets AppScript Kodu")
-    script = f"function olusturVardiya() {{\n  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();\n  var data = {json.dumps(df.reset_index().values.tolist())};\n  sheet.getRange(1, 1, data.length, data[0].length).setValues(data);\n}}"
+    script = f"function olusturVardiya() {{\n  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();\n  var data = {json.dumps([df.columns.tolist()] + df.values.tolist())};\n  sheet.getRange(1, 1, data.length, data[0].length).setValues(data);\n}}"
     st.code(script, language="javascript")
