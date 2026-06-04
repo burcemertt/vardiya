@@ -203,6 +203,8 @@ hide_menu_style = """
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
+        .viewerBadge_container__1QS1h {display: none !important;} /* Streamlit logosunu uçurur */
+        button[title="View source code"] {display: none !important;} /* GitHub kod butonunu gizler */
         </style>
         """
-str.markdown(hide_menu_style, unsafe_allow_html=True)
+st.markdown(hide_menu_style, unsafe_allow_html=True)
