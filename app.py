@@ -3,7 +3,7 @@ import pandas as pd
 import json
 
 st.set_page_config(layout="wide", page_title="Vardiya Planlayıcı")
-st.title("🛡️ Kişisel Vardiya Raporu")
+st.title("🛡️ Kişisel Vardiya ve İzin Planlayıcı")
 
 staff_list = [
     {"isim": "POLAT", "rol": "Kıdemli"}, {"isim": "İLKER", "rol": "Kıdemli"},
@@ -32,26 +32,23 @@ SHIFTS = ["Sabah (08:30)", "12:00 Ara", "17:30 Ara", "19:00 Ara", "21:00 Ara", "
 DAYS = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
 
 if "talep" not in st.session_state:
-    st.session_state.talep = {p['isim']: {"v1": "Talep Yok", "v2": "Talep Yok", "izin": []} for p in staff_list}
+    st.session_state.talep = {p['isim']: {"v1": "Sabah (08:30)", "izin": "Pazartesi"} for p in staff_list}
 
 st.sidebar.header("📝 Personel Tercihleri")
 for p in staff_list:
     with st.sidebar.expander(f"{p['isim']}"):
-        st.session_state.talep[p['isim']]['v1'] = st.selectbox("1. Tercih", ["Talep Yok"] + SHIFTS, key=f"{p['isim']}_v1")
-        st.session_state.talep[p['isim']]['v2'] = st.selectbox("2. Tercih", ["Talep Yok"] + SHIFTS, key=f"{p['isim']}_v2")
-        st.session_state.talep[p['isim']]['izin'] = st.multiselect("İzin Günü", DAYS, key=f"{p['isim']}_izin")
+        st.session_state.talep[p['isim']]['v1'] = st.selectbox("Vardiya Tercihi", SHIFTS, key=f"{p['isim']}_v1")
+        st.session_state.talep[p['isim']]['izin'] = st.selectbox("İzin Günü (Sadece 1 Gün)", DAYS, key=f"{p['isim']}_izin")
 
 if st.button("🚀 Kişisel Vardiya Raporu Oluştur"):
     rows = []
     for p in staff_list:
         p_row = {"Personel": p['isim']}
         for day in DAYS:
-            if day in st.session_state.talep[p['isim']]['izin']:
+            if day == st.session_state.talep[p['isim']]['izin']:
                 p_row[day] = "OFF"
-            elif st.session_state.talep[p['isim']]['v1'] != "Talep Yok":
-                p_row[day] = st.session_state.talep[p['isim']]['v1']
             else:
-                p_row[day] = "Belirsiz"
+                p_row[day] = st.session_state.talep[p['isim']]['v1']
         rows.append(p_row)
 
     df = pd.DataFrame(rows)
